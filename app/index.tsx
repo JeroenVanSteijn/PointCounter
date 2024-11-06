@@ -132,6 +132,13 @@ export default function App() {
     updateHistory(initialPlayers, initialRounds);
   };
 
+  const getPlayerScore = (playerId: string) => {
+    return rounds.reduce((total, round) => {
+      const score = parseInt(round.scores[playerId] || '0', 10);
+      return total + score;
+    }, 0);
+  }
+
   return (
     <View style={styles.container}>
       <SafeAreaView style={styles.container}>
@@ -151,7 +158,7 @@ export default function App() {
               {players.map((player) => (
                 <View key={player.id} style={styles.scoreRow}>
                   <Button
-                    title={player.name}
+                    title={player.name + ' (' + getPlayerScore(player.id) + ')'}
                     onPress={() => openRenameModal(player.id)}
                     buttonStyle={styles.playerName}
                   />
@@ -257,7 +264,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontWeight: 'bold',
     textAlign: 'center',
-    minWidth: 100,
+    width: 105
   },
   scoreRow: {
     flexDirection: 'row',
@@ -266,8 +273,10 @@ const styles = StyleSheet.create({
   },
   playerName: {
     flex: 1,
+    marginLeft: 10,
     textAlign: 'center',
     minWidth: 100,
+    maxWidth: 100,
     backgroundColor: '#2089dc',
     borderRadius: 5,
   },
@@ -275,6 +284,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 4,
     minWidth: 100,
+    maxWidth: 100,
   },
   input: {
     textAlign: 'center',

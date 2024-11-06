@@ -13,7 +13,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jjvansteijndeltan.PointCounter"
     },
     "android": {
       "adaptiveIcon": {
@@ -31,6 +32,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8051b5c6-4a4a-44bf-a0de-d115b1288aa3"
+      }
     }
   }
 }

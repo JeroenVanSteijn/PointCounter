@@ -19,6 +19,8 @@ export default function App() {
   const [renamingPlayerId, setRenamingPlayerId] = useState<string | null>(null);
   const [newPlayerName, setNewPlayerName] = useState<string>('');
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  const [history, setHistory] = useState<{ players: Player[], rounds: Round[] }[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
 
   useEffect(() => {
     loadGame();
@@ -52,21 +54,29 @@ export default function App() {
 
   const addPlayer = () => {
     const newPlayerId = (players.length + 1).toString();
-    setPlayers([...players, { id: newPlayerId, name: `Player ${newPlayerId}` }]);
+    const newPlayers = [...players, { id: newPlayerId, name: `Player ${newPlayerId}` }];
+    updateHistory(newPlayers, rounds);
+    setPlayers(newPlayers);
   };
 
   const removePlayer = (playerId: string) => {
-    setPlayers(players.filter(player => player.id !== playerId));
+    const newPlayers = players.filter(player => player.id !== playerId);
+    updateHistory(newPlayers, rounds);
+    setPlayers(newPlayers);
   };
 
   const addRound = () => {
     const newRoundId = (rounds.length + 1).toString();
-    setRounds([...rounds, { id: newRoundId, scores: {} }]);
+    const newRounds = [...rounds, { id: newRoundId, scores: {} }];
+    updateHistory(players, newRounds);
+    setRounds(newRounds);
   };
 
   const removeRound = () => {
     if (rounds.length > 1) {
-      setRounds(rounds.slice(0, -1));
+      const newRounds = rounds.slice(0, -1);
+      updateHistory(players, newRounds);
+      setRounds(newRounds);
     }
   };
 
@@ -80,14 +90,17 @@ export default function App() {
       }
       return round;
     });
+    updateHistory(players, updatedRounds);
     setRounds(updatedRounds);
   };
 
   const renamePlayer = () => {
     if (renamingPlayerId && newPlayerName) {
-      setPlayers(players.map(player => 
+      const newPlayers = players.map(player => 
         player.id === renamingPlayerId ? { ...player, name: newPlayerName } : player
-      ));
+      );
+      updateHistory(newPlayers, rounds);
+      setPlayers(newPlayers);
       setRenamingPlayerId(null);
       setNewPlayerName('');
       setIsModalVisible(false);
@@ -97,6 +110,31 @@ export default function App() {
   const openRenameModal = (playerId: string) => {
     setRenamingPlayerId(playerId);
     setIsModalVisible(true);
+  };
+
+  const updateHistory = (newPlayers: Player[], newRounds: Round[]) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({ players: newPlayers, rounds: newRounds });
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  };
+
+  const undo = () => {
+    if (historyIndex > 0) {
+      const previousState = history[historyIndex - 1];
+      setPlayers(previousState.players);
+      setRounds(previousState.rounds);
+      setHistoryIndex(historyIndex - 1);
+    }
+  };
+
+  const redo = () => {
+    if (historyIndex < history.length - 1) {
+      const nextState = history[historyIndex + 1];
+      setPlayers(nextState.players);
+      setRounds(nextState.rounds);
+      setHistoryIndex(historyIndex + 1);
+    }
   };
 
   return (
@@ -123,6 +161,18 @@ export default function App() {
             title="Remove Round"
             onPress={removeRound}
             disabled={rounds.length <= 1}
+            buttonStyle={styles.button}
+          />
+          <Button
+            title="Undo"
+            onPress={undo}
+            disabled={historyIndex <= 0}
+            buttonStyle={styles.button}
+          />
+          <Button
+            title="Redo"
+            onPress={redo}
+            disabled={historyIndex >= history.length - 1}
             buttonStyle={styles.button}
           />
         </View>

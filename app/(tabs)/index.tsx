@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, ScrollView, View, StyleSheet } from 'react-native';
+import { SafeAreaView, ScrollView, View, StyleSheet, Modal } from 'react-native';
 import { Text, Button, Input } from 'react-native-elements';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -16,6 +16,9 @@ interface Round {
 export default function App() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [rounds, setRounds] = useState<Round[]>([]);
+  const [renamingPlayerId, setRenamingPlayerId] = useState<string | null>(null);
+  const [newPlayerName, setNewPlayerName] = useState<string>('');
+  const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
 
   useEffect(() => {
     loadGame();
@@ -29,7 +32,6 @@ export default function App() {
     try {
       const savedPlayers = await AsyncStorage.getItem('players');
       const savedRounds = await AsyncStorage.getItem('rounds');
-
       if (savedPlayers && savedRounds) {
         setPlayers(JSON.parse(savedPlayers));
         setRounds(JSON.parse(savedRounds));
@@ -81,6 +83,22 @@ export default function App() {
     setRounds(updatedRounds);
   };
 
+  const renamePlayer = () => {
+    if (renamingPlayerId && newPlayerName) {
+      setPlayers(players.map(player => 
+        player.id === renamingPlayerId ? { ...player, name: newPlayerName } : player
+      ));
+      setRenamingPlayerId(null);
+      setNewPlayerName('');
+      setIsModalVisible(false);
+    }
+  };
+
+  const openRenameModal = (playerId: string) => {
+    setRenamingPlayerId(playerId);
+    setIsModalVisible(true);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
@@ -108,29 +126,67 @@ export default function App() {
             buttonStyle={styles.button}
           />
         </View>
-        <View style={styles.headerContainer}>
-          <Text style={styles.headerText}>Player</Text>
-          {rounds.map(round => (
-            <Text key={round.id} style={styles.headerText}>
-              Round {round.id}
-            </Text>
-          ))}
-        </View>
-        {players.map(player => (
-          <View key={player.id} style={styles.scoreRow}>
-            <Text style={styles.playerName}>{player.name}</Text>
-            {rounds.map(round => (
-              <Input
-                key={round.id}
-                keyboardType="number-pad"
-                value={round.scores[player.id] || ''}
-                onChangeText={score => updateScore(player.id, round.id, score)}
-                containerStyle={styles.inputContainer}
-                inputStyle={styles.input}
-              />
+        <ScrollView horizontal>
+          <View>
+            <View style={styles.headerContainer}>
+              <Text style={styles.headerText}>Player</Text>
+              {rounds.map(round => (
+                <Text key={round.id} style={styles.headerText}>
+                  Round {round.id}
+                </Text>
+              ))}
+            </View>
+            {players.map(player => (
+              <View key={player.id} style={styles.scoreRow}>
+                <Button
+                  title={player.name}
+                  onPress={() => openRenameModal(player.id)}
+                  buttonStyle={styles.playerName}
+                />
+                {rounds.map(round => (
+                  <Input
+                    key={round.id}
+                    keyboardType="number-pad"
+                    value={round.scores[player.id] || ''}
+                    onChangeText={score => updateScore(player.id, round.id, score)}
+                    containerStyle={styles.inputContainer}
+                    inputStyle={styles.input}
+                  />
+                ))}
+              </View>
             ))}
           </View>
-        ))}
+        </ScrollView>
+        <Modal
+          visible={isModalVisible}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setIsModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Input
+                placeholder="Player Name"
+                value={newPlayerName}
+                onChangeText={setNewPlayerName}
+                containerStyle={styles.modalInputContainer}
+                inputStyle={styles.modalInput}
+              />
+              <View style={styles.modalButtonContainer}>
+                <Button
+                  title="Cancel"
+                  onPress={() => setIsModalVisible(false)}
+                  buttonStyle={styles.modalCancelButton}
+                />
+                <Button
+                  title="Save"
+                  onPress={renamePlayer}
+                  buttonStyle={styles.modalButton}
+                />
+              </View>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </SafeAreaView>
   );
@@ -148,6 +204,10 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     backgroundColor: '#2089dc',
   },
+  cancelButton: {
+    marginVertical: 8,
+    backgroundColor: '#e74c3c',
+  },
   headerContainer: {
     flexDirection: 'row',
     paddingVertical: 8,
@@ -158,6 +218,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontWeight: 'bold',
     textAlign: 'center',
+    minWidth: 100,
   },
   scoreRow: {
     flexDirection: 'row',
@@ -167,12 +228,47 @@ const styles = StyleSheet.create({
   playerName: {
     flex: 1,
     textAlign: 'center',
+    minWidth: 100,
   },
   inputContainer: {
     flex: 1,
     marginHorizontal: 4,
+    minWidth: 100,
   },
   input: {
     textAlign: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalInputContainer: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  modalInput: {
+    textAlign: 'center',
+  },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  modalButton: {
+    marginHorizontal: 5,
+    backgroundColor: '#2089dc',
+  },
+  modalCancelButton: {
+    marginHorizontal: 5,
+    backgroundColor: '#e74c3c',
   },
 });
